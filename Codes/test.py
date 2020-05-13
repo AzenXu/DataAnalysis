@@ -95,7 +95,9 @@ def load_down_2_percent_date(ori_df: DataFrame) -> DataFrame:
     condition_serial = (ori_df['open'] - ori_df['close'].shift(-1)) / ori_df['close'].shift(-1) < -0.02
     return load_condition_date(ori_df, condition_serial)
 
-
+'''
+需求四：月初定投、年末卖出策略，收益回测
+'''
 def calculate_income(ori_df: DataFrame):
     # 分析：
     # 1. 将数据从2010年切分到昨天 df['2010':'2020'] - 因为行索引是datetime，故可以直接通过这种方式切片对应时间数据 - 碉堡了
