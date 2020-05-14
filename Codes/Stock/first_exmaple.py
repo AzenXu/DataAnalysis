@@ -1,61 +1,8 @@
-import pandas as pd
 from pandas import DataFrame, Series
-import numpy as np
-import tushare as ts
-import os
-
-def init():
-    ts.set_token(os.getenv('TUSHARE_TOKEN'))
-
-def load_data(stock_code: str) -> DataFrame:
-    pro = ts.pro_api()
-    # 类型声明
-    df = DataFrame(pro.daily(ts_code=stock_code, start_date='1900-01-01', end_date='2099-01-01'))
-    # 持久化
-    df.to_csv('./stock_data.csv')
-    # 读文件
-    df = pd.read_csv('./stock_data.csv')
-    '''
-          Unnamed: 0    ts_code  trade_date  ...   pct_chg        vol        amount
-    0              0  002230.SZ    20200513  ...   -0.2928  171993.64  5.843896e+05
-    1              1  002230.SZ    20200512  ...   -1.1291  233205.86  7.947280e+05
-    '''
-    return df
-
-def data_clear(ori_df: DataFrame):
-    # 干掉第一列
-    # - axis=1列 - 0行
-    # - inplace -> 修改源数据
-    ori_df.drop(labels='Unnamed: 0', axis=1, inplace=True)
-    '''
-            ts_code  trade_date   open  ...   pct_chg        vol        amount
-    0     002230.SZ    20200513  34.15  ...   -0.2928  171993.64  5.843896e+05
-    1     002230.SZ    20200512  34.60  ...   -1.1291  233205.86  7.947280e+05
-    2     002230.SZ    20200511  34.78  ...    0.7879  290258.81  1.002119e+06
-    '''
-    # 查看列数据类型
-    ori_df.info()
-    '''
-     #   Column      Non-Null Count  Dtype  
-    ---  ------      --------------  -----  
-     0   ts_code     2832 non-null   object 
-     1   trade_date  2832 non-null   int64  
-    '''
-
-    # 设置时间类型列
-    # def date_change_demo():
-    #     # 1，string变成datetime格式
-    #     dates = pd.to_datetime(pd.Series(['20010101', '20010331']), format='%Y%m%d')
-    #     # # 2，datetime变回string格式
-    #     # dates.apply(lambda x: x.strftime('%Y-%m-%d'))
-    ori_df['date'] = pd.to_datetime(ori_df['trade_date'], format='%Y%m%d')
-
-    # 将date设置为行索引 - 原来是隐式索引0、1、2...
-    ori_df.set_index(ori_df['date'], inplace=True)
-
+import Stock.DataLoader as Loader
 
 '''
-    # 需求一：输出该股票所有：收盘close 比开盘open 上涨3%以上 的日期（拿到行索引即可）
+    # 需求二：输出该股票所有：收盘close 比开盘open 上涨3%以上 的日期（拿到行索引即可）
     # (收盘 - 开盘) / 开盘 > 0.03
     # (df['close'] - df['open']) / df['open'] > 0.03  -> 返回Serial(BOOL)类型 -> 将True所对应日期获取出来即可
 
@@ -124,11 +71,9 @@ def calculate_income(ori_df: DataFrame):
     benefit_doing =needed_df['close'][0] * 5 * 100
     return benefit_doing + benefit_done - cost
 
-
-if __name__ == '__main__':
-    init()
-    df = load_data('002230.sz')
-    data_clear(df)
+def main():
+    df = Loader.DataLoader.load_data('002230.sz')
+    Loader.DataLoader.data_clear(df)
 
     # 需求二：上升3%
     dates_up_3 = load_3_percent_date(df)
@@ -137,8 +82,3 @@ if __name__ == '__main__':
     # 需求四：加入从2010年1月1日开始，每月第1个交易日买入1手，每年最后一个交易日卖出所有股票。问：到今天为止，收益是多少？
     income = calculate_income(df)
     print(income)
-
-
-
-
-
