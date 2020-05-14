@@ -35,7 +35,7 @@ class DataLoader:
         2     002230.SZ    20200511  34.78  ...    0.7879  290258.81  1.002119e+06
         '''
         # 查看列数据类型
-        ori_df.info()
+        # ori_df.info()
         '''
          #   Column      Non-Null Count  Dtype  
         ---  ------      --------------  -----  
