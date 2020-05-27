@@ -1,0 +1,1 @@
+Starts off with basic mathematical operations and gradually moves on to topics requiring a higher level of math know-how
