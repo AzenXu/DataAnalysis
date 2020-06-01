@@ -168,8 +168,6 @@ def numpy_index_slice_loop():
         for element in a.flat:
             print(element)
 
-    pass
-
 
 def numpy_array_shape_change():
     import numpy
