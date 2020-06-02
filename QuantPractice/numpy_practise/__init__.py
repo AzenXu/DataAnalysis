@@ -136,11 +136,61 @@ def test_python_number():
         plt.legend()
         plt.show()
 
+    def additional_test():
+        print(np.nonzero([1, 0, 100, 1, 0]))  # (array([0, 2, 3]),)
+        print(np.arange(0, 10).reshape(2, 5).max())  # 9
+        print(np.arange(0, 10).reshape(2, 5).min())  # 0
+
+        def standard_deal():
+            ori_array = np.random.standard_normal((2, 2))
+            ori_array = (ori_array - ori_array.min()) / (ori_array.max() - ori_array.min())
+            print(ori_array.round(2))
+            #  [[0.67 0.  ]
+            #  [0.48 1.  ]]
+
+        standard_deal()
+
+        def sort_test():
+            z = np.random.randn(1, 3).round(2)
+            z.sort()
+            print(z, np.sort(z))
+            np.random.seed(10)
+            print(np.sort(np.random.randn(2, 2)).round(2))  # [[-1.12 -0.93 -0.3 ]] [[-1.12 -0.93 -0.3 ]]
+            #  [[ 0.09  0.49]
+            #  [-0.99 -0.12]]
+            np.random.seed(10)
+            print(np.sort(np.random.randn(2, 2), axis=0).round(2))
+            # [[-1.55 - 0.01]
+            #  [1.33  0.72]]
+
+        sort_test()
+
+        print(np.arange(0, 9).argmax())  # 8
+        print(np.arange(0, 9).reshape(3, 3).argmax())  # 8
+        print(np.abs((np.arange(0, 9) - 5.5)).argmin())  # 5
+
+        print(np.hstack([np.zeros((2, 2)), np.ones((2, 2))]))
+        # [[0. 0. 1. 1.]
+        #  [0. 0. 1. 1.]]
+        print(np.vstack([np.zeros((2, 2)), np.ones((2, 2))]))
+        # [[0. 0.]
+        #  [0. 0.]
+        #  [1. 1.]
+        #  [1. 1.]]
+        print(np.append(np.zeros(2), np.ones(2))) # #  [0. 0. 1. 1.]
+        print(np.append(np.zeros((2, 2)), np.ones((2,2)))) # [0. 0. 0. 0. 1. 1. 1. 1.] 居然先拍平然后再拼，老流氓！
+        print(np.arange(0, 3).tolist())  # [0, 1, 2]
+
+        rates = np.array([0.1, -0.1, 0.5, 0.2])
+        rates_final = (rates + 1).cumprod()
+        print(rates_final)  # [1.1   0.99  1.485 1.782]
+
     # numpy_test()
     # normal_list_choice()
     # line_calculate()
     # random_generate()
-    fit_test()
+    # fit_test()
+    additional_test()
 
 
 if __name__ == '__main__':
