@@ -2,6 +2,7 @@
   <dictionary name="azen">
     <words>
       <w>ndarray</w>
+      <w>quandl</w>
     </words>
   </dictionary>
 </component>
