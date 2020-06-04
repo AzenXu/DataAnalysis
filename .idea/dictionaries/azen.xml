@@ -3,6 +3,7 @@
     <words>
       <w>ndarray</w>
       <w>quandl</w>
+      <w>tushare</w>
     </words>
   </dictionary>
 </component>
