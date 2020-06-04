@@ -71,9 +71,9 @@ def network_data_read():
 
     ts.set_token(os.getenv('TUSHARE_TOKEN'))
 
-    # pro = ts.pro_api()
-    # df = pro.trade_cal(exchange='', start_date='20180901', end_date='20181001', fields='exchange,cal_date,is_open,pretrade_date', is_open='0')
-    # print(df)
+    pro = ts.pro_api()
+    df = pro.trade_cal(exchange='', start_date='20180901', end_date='20181001', fields='exchange,cal_date,is_open,pretrade_date', is_open='0')
+    print(df)
 
     pass
 
