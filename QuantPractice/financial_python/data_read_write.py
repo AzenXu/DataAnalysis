@@ -103,13 +103,22 @@ def network_data_read():
     pass
 
 
-def multi_stock_search():
+def multi_stock_search(codes: list = None):
+    if codes is None:
+        codes = ['002230.SZ', '603000.SH', '600804.SH']
+
     ts.set_token(os.getenv('TUSHARE_TOKEN'))
 
-    def multiple_stocks(codes: list) -> pd.DataFrame:
+    def multiple_stocks() -> pd.DataFrame:
         def load_stock(code: str):
             print(code)
-            stock: pd.DataFrame = ts.pro_bar(code, start_date='20200101', end_date='20200601')
+
+            # 查沪深300，则把asset设置为I，否则为E
+            asset = 'E'
+            if code == '000300.SH':
+                asset = 'I'
+
+            stock: pd.DataFrame = ts.pro_bar(code, asset=asset, start_date='20200101', end_date='20200601')
             stock.index = pd.to_datetime(stock.trade_date)
             return stock
 
@@ -122,7 +131,7 @@ def multi_stock_search():
                          keys=codes,  # 2
                          names=['Code', 'Date'])  # 3
 
-    stocks = multiple_stocks(['002230.SZ', '603000.SH', '600804.SH'])
+    stocks = multiple_stocks()
 
     print(stocks)
     """
@@ -149,7 +158,7 @@ Code      Date                                 ...
 def get_stocks_close(stocks: pd.DataFrame) -> pd.DataFrame:
     def get_stocks_close_one() -> pd.DataFrame:
         # 法一：利用多重索引的unstack()
-        stocks_close = stocks.close.unstack().T
+        stocks_close = stocks.close.unstack().T.sort_index(ascending=True)
         #     """
         #     Code        002230.SZ  603000.SH  600804.SH
         # Date
@@ -192,8 +201,66 @@ def close_price_draw(stocks: pd.DataFrame):
     plt.show()
 
 
+def return_ratio_draw(stocks: pd.DataFrame):
+    stocks_close = get_stocks_close(stocks)
+    return_ratio_1 = stocks_close / stocks_close.shift() - 1
+    # 计算与其前一个元素的变化百分比
+    return_ratio_2 = stocks_close.pct_change()  # 1-1
+    # 计算累计收益率
+    cum_return_ratio = (return_ratio_2 + 1).cumprod()
+    # 画之
+    cum_return_ratio.plot()
+    plt.show()
+
+
+def return_ratio_hist(stocks: pd.DataFrame):
+    stocks_return = get_stocks_close(stocks).pct_change()
+    stocks_return.hist(bins=60)
+    plt.show()
+
+
+def qq_plot(stocks_return: pd.DataFrame):
+    import scipy.stats as stats
+    fig = plt.figure(figsize=(7, 5))
+    ax = fig.add_subplot(111)
+    stats.probplot(
+        stocks_return['002230.SZ'],
+        dist='norm',
+        plot=ax
+    )
+    plt.show()
+
+
+def return_correlated():
+    # 拿到return表
+    stocks_return = get_stocks_close(multi_stock_search(
+        ['000300.SH', '002230.SZ', '603000.SH', '600804.SH']
+    )).pct_change()
+    # stocks_return = stocks_close.pct_change()
+    # print(stocks_return)
+
+    # 计算相关性
+    stocks_corr = stocks_return.corr()
+    print(stocks_corr)
+
+    # 画热力图
+    import seaborn
+    seaborn.heatmap(stocks_corr, vmin=0)
+    plt.show()
+
+    # 两支股相关性研究 - 散点图
+    plt.figure(figsize=(8,6))
+    plt.title('科大-HS300相关性')
+    plt.plot(stocks_return['000300.SH'], stocks_return['002230.SZ'], '.')
+    plt.show()
+
+
 if __name__ == '__main__':
     # local_file_read()
     # network_data_read()
-    close_price_draw(multi_stock_search())
+    # close_price_draw(multi_stock_search())
+    # return_ratio_draw(multi_stock_search())
+    # return_ratio_hist(multi_stock_search())
+    # qq_plot(get_stocks_close(multi_stock_search()).pct_change())
+    return_correlated()
     print('I come back again~ ')
