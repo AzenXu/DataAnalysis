@@ -249,10 +249,66 @@ def return_correlated():
     plt.show()
 
     # 两支股相关性研究 - 散点图
-    plt.figure(figsize=(8,6))
+    plt.figure(figsize=(8, 6))
     plt.title('科大-HS300相关性')
     plt.plot(stocks_return['000300.SH'], stocks_return['002230.SZ'], '.')
     plt.show()
+
+
+def datetime_control():
+    print('Can I control the TIME?')
+
+    def python_date():
+        from datetime import datetime
+        # 构建
+        now = datetime.now()
+        print(
+            now,  # 2020-06-05 16:53:41.560043
+            type(now),  # <class 'datetime.datetime'>
+            '{}年{}月{}日'.format(now.year, now.month, now.day)  # 2020年6月5日
+        )
+
+        some_time = datetime(2020, 5, 25, 23, 0)
+        print(some_time)  # 2020-05-25 23:00:00
+
+        # 转化 - d to str
+        some_time_str = str(some_time)
+        print(some_time_str)  # 2020-05-25 23:00:00
+
+        some_time_str2 = some_time.strftime('%d/%m/%Y')  # 25/05/2020
+        print(some_time_str2)
+
+        # 转化 - str to d
+        # 法1 - 内置
+        date_str = '2017-06-18'
+        date_real = datetime.strptime(date_str, '%Y-%m-%d')
+        print(date_real)
+        # 法2 - dateutil
+        from dateutil.parser import parse
+        date_real2 = parse('01-02-2020', dayfirst=True)
+        print(date_real2)  # 2020-02-01 00:00:00
+        # 法3 - pandas
+        print(pd.to_datetime('20200202'))
+
+    # python_date()
+
+    def date_index():
+        df = pd.DataFrame(
+            np.random.randn(300, 2).round(2),
+            index=pd.date_range('20200101', periods=300, freq='D'),
+            columns=['天气', '心情']
+        )
+        print(df)
+
+        # 特点1 - 按月切片，不用.loc - 按天还是得.loc
+        print(df['2020-01'])
+
+
+        pass
+
+    date_index()
+
+    pass
 
 
 if __name__ == '__main__':
@@ -262,5 +318,8 @@ if __name__ == '__main__':
     # return_ratio_draw(multi_stock_search())
     # return_ratio_hist(multi_stock_search())
     # qq_plot(get_stocks_close(multi_stock_search()).pct_change())
-    return_correlated()
+    # return_correlated()
+
+    datetime_control()
+
     print('I come back again~ ')
