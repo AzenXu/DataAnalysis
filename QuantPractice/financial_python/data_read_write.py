@@ -293,6 +293,14 @@ def datetime_control():
     # python_date()
 
     def date_index():
+        from datetime import datetime
+
+        # datetimeindex - 构建一 - pd.DatetimeIndex()
+        print(pd.DatetimeIndex([datetime(2020, 6, 7)]))
+        # DatetimeIndex(['2020-06-07'], dtype='datetime64[ns]', freq=None)
+        print(pd.date_range('20200601', '20200607'))
+
+        # datetimeindex - 构建二 - pd.date_range()
         df = pd.DataFrame(
             np.random.randn(300, 2).round(2),
             index=pd.date_range('20200101', periods=300, freq='D'),
@@ -300,13 +308,37 @@ def datetime_control():
         )
         print(df)
 
-        # 特点1 - 按月切片，不用.loc - 按天还是得.loc
+        # datetimeindex特点1 - 按月切片，不用.loc - 按天还是得.loc
         print(df['2020-01'])
 
+        # datetimeindex特点2 - 从月切到天
+        print(df['2020-02':'2020-03-04'])
 
         pass
 
-    date_index()
+    # date_index()
+
+    def date_resample():
+        # 注意：单独对TimeSeries重取样没意义，resample是df的对象方法
+        date = pd.date_range('20200525', '20200630')
+
+        df = pd.DataFrame(np.random.randn(300, 2),
+                          index=pd.date_range('20200525', periods=300)
+                          )
+
+        # 此处API有变动，不再支持how参数
+        mean_monthly = df.resample('M').mean()
+        # 计算每阶段的open、close、high、low
+        ohlc_monthly = df.resample('M').ohlc()
+        print(ohlc_monthly)
+
+        # 降采样
+        # 指定fillna规则 - ffill - 向前填充
+        print(df.resample('H').fillna(method='ffill'))
+        # 指定fillna规则 - 线性插值
+        print(df.resample('H').interpolate())
+
+    # date_resample()
 
     pass
 
@@ -320,6 +352,10 @@ if __name__ == '__main__':
     # qq_plot(get_stocks_close(multi_stock_search()).pct_change())
     # return_correlated()
 
+    #  --- 时间部分 ---
     datetime_control()
+
+    # --- 两个Case ---
+
 
     print('I come back again~ ')
