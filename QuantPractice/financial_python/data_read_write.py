@@ -343,6 +343,53 @@ def datetime_control():
     pass
 
 
+def case_tech_analysis_calculate():
+    import os
+
+    # 画出HS300收盘价
+    ts.set_token(os.getenv('TUSHARE_TOKEN'))
+    hs300 = ts.pro_bar('000300.SH', asset='I', start_date='2017-01-01', end_date='2020-06-07')
+    hs300.index = pd.to_datetime(hs300['trade_date'])
+    hs300.sort_index(ascending=True, inplace=True)
+    hs300.close.plot()
+    plt.show()
+
+    # 画股价 & 日收益率曲线
+    hs300['return'] = hs300.close.pct_change()
+    print(hs300)
+    hs300[['close', 'return']].plot(subplots=True)
+    plt.show()
+
+    # 画MA20 - 移动平均曲线
+    # 算ma20 - 法一：
+    hs300['ma20_a'] = hs300['close'].rolling(
+        window=20,
+        min_periods=0
+    ).mean()
+    # 算ma20 - 法二：三方库
+    import talib as ta
+    # $ brew install ta-lib
+    # $ pip install TA-Lib
+    hs300['ma20_b'] = ta.SMA(np.asarray(hs300.close), 20)
+    print(hs300)
+    hs300[['close', 'ma20_a']].plot()
+    plt.show()
+
+    # 画年化移动标准差波动率
+    import math
+    hs300['Mov_Vol'] = hs300['close'].rolling(window=252).std() * math.sqrt(252)
+    hs300[['close', 'Mov_Vol']].plot(subplots=True)
+    plt.show()
+
+
+def case_cigar_butts():
+    import os
+    ts.set_token(os.getenv('TUSHARE_TOKEN'))
+    hs300 = ts.pro_api().index_weight(index_code='000300.SH')
+    print(hs300)
+    pass
+
+
 if __name__ == '__main__':
     # local_file_read()
     # network_data_read()
@@ -353,9 +400,11 @@ if __name__ == '__main__':
     # return_correlated()
 
     #  --- 时间部分 ---
-    datetime_control()
+    # datetime_control()
 
     # --- 两个Case ---
+    # case_tech_analysis_calculate()
 
+    case_cigar_butts()
 
     print('I come back again~ ')
