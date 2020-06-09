@@ -3,6 +3,7 @@ import matplotlib.image as mpimg
 import numpy as np
 # np.set_printoptions(threshold=np.nan)
 import pandas as pd
+import matplotlib
 
 
 def data_wash(img):
@@ -37,11 +38,87 @@ def data_wash(img):
         needed_img = img_baked[:, left:right]
         return needed_img
 
-    def remove_tiny_content(no_machine_img):
-        return no_machine_img
+    def remove_flying_content(no_machine_img):
+        """
+        干掉「飞点」
+        # 1.判断飞点
+        1. 拿到白点们的坐标List
+        2. 逐y值，找横向飞点：
+            1. 判断x+1,x+2,x+3,x+4,x-1,x-2,x-3,x-4有几个在list中
+            2. 如果数量<5，则认为是「飞点」
+            3. 把(x, y)放入横向飞点list中
+        3. 逐x值，纵向飞点：
+            1. 判断y+1,y+2,y+3,y+4,y-1,y-2,y-3,y-4有几个在list中
+            2. 如果数量<5，则认为是「飞点」
+            3. 把(x, y)放入纵向飞点list中
+        # 2.即是横向飞点，又是纵向飞点的点，是真正的飞点。
+        # 拿到真正飞点坐标list，逐个把其值置换为NaN
+        """
+        white_points_y, white_points_x = np.where(no_machine_img == 1)
 
-    centre_img = remove_tiny_content(remove_machine())
-    return centre_img
+        def find_fly_points_hor() -> list:
+            fly_points_hor = []
+            for i in range(len(white_points_y)):
+                y = white_points_y[i]
+                x = white_points_x[i]
+
+                # 左右4个点内，y相同的点的数量
+                count = 0
+                # --- 处理边界值 ---
+                left = -4
+                right = 5
+                if i < 4:
+                    left = 0
+                if i > len(white_points_y) - 5:
+                    right = len(white_points_y) - i
+                # --- 正式逻辑 ---
+                for inner_i in range(left, right):
+                    inner_y = white_points_y[i + inner_i]
+                    if inner_y == y:
+                        count += 1
+                if count < 4:
+                    fly_points_hor.append((x, y))
+
+            return fly_points_hor
+
+        def find_fly_points_ver() -> list:
+            fly_points_ver = []
+            for i in range(len(white_points_x)):
+                x = white_points_x[i]
+                y = white_points_y[i]
+
+                # 上下4个点内，x相同的点的数量
+                x_positions = np.where(white_points_x == x)[0]
+                # 用position们去y_list中找y们
+                y_count = 0
+                for j in range(len(x_positions)):
+                    x_index = x_positions[j]
+                    tmp_y = white_points_y[x_index]
+                    if abs(tmp_y - y) < 4:
+                        y_count += 1
+                if y_count <= 4:
+                    fly_points_ver.append((x, y))
+
+            return fly_points_ver
+
+        print(find_fly_points_ver())
+
+        def remove_fly_points(fly_points) -> np.ndarray:
+            for point in fly_points:
+                point_x, point_y = point
+                no_machine_img[point_y][point_x] = np.nan
+            return no_machine_img
+
+        print()
+        print(remove_fly_points(find_fly_points_hor()))
+
+        no_flying_points = remove_fly_points(find_fly_points_ver())
+        no_flying_points = remove_fly_points(find_fly_points_hor())
+
+        return no_flying_points
+
+    washed_img = remove_flying_content(remove_machine())
+    return washed_img
 
 
 def get_point_position(washed_img) -> dict:
@@ -87,23 +164,5 @@ def get_point_position(washed_img) -> dict:
     return wanted_y
 
 
-def get_top_position(img) -> int:
-    # print(img.shape)
-
-    new_img = img[:, 500:1100, :].copy()  # 裁剪图片到中心区域
-    new_img_bake = np.where(new_img > 0, 1, np.nan)
-    positions = np.where(new_img_bake == [255, 255, 255])
-
-    # print(new_img_bake)
-    # plt.imshow(new_img_bake)
-    # plt.show()
-
-    # df = pd.DataFrame(positions[1], index=positions[0])
-    # print(df.head(300))
-    # print(positions[0][0])
-    return positions[0][0]
-
-
 if __name__ == '__main__':
     get_point_position(data_wash(mpimg.imread('./ori_imgs/6.jpg')))
-    # print(get_top_position(mpimg.imread('./ori_imgs/2.jpeg')))

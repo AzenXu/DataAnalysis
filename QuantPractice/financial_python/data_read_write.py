@@ -383,11 +383,43 @@ def case_tech_analysis_calculate():
 
 
 def case_cigar_butts():
-    import os
-    ts.set_token(os.getenv('TUSHARE_TOKEN'))
-    hs300 = ts.pro_api().index_weight(index_code='000300.SH')
-    print(hs300)
-    pass
+    def load_stocks() -> pd.DataFrame:
+        import os
+        from functools import reduce
+
+        ts.set_token(os.getenv('TUSHARE_TOKEN'))
+        pro = ts.pro_api()
+        hs300: pd.DataFrame = pro.index_weight(index_code='000300.SH', trade_date='20200601')
+
+        hs300.rename(columns={"con_code": "ts_code"}, inplace=True)
+        stock_all = pro.stock_basic()
+        stock_basic = pro.daily_basic(ts_code='', trade_date='20200605')
+
+        hs300_plus = reduce(
+            lambda x, y: pd.merge(x, y, how='left', on='ts_code'),
+            [hs300, stock_all, stock_basic]
+        )
+
+        hs300_plus = hs300_plus[['name', 'pe', 'pb', 'industry']]
+        hs300_plus.drop_duplicates(inplace=True)
+
+        return hs300_plus
+
+    def filter_stocks(hs300: pd.DataFrame):
+        print(hs300)
+        hs300['估值系数'] = hs300['pe'] * hs300['pb']
+
+        stocks_filtered = hs300.loc[
+            (hs300.估值系数 < 60) & (hs300.circ_mv < 5000000)
+            ]
+
+        def group_func(stocks):
+            return stocks.sort_values(['估值系数'], ascending=True)[:2]
+
+        stocks_grouped = stocks_filtered.groupby('industry').apply(group_func)
+        print(stocks_grouped)
+
+    filter_stocks(hs300=load_stocks())
 
 
 if __name__ == '__main__':
@@ -405,6 +437,9 @@ if __name__ == '__main__':
     # --- 两个Case ---
     # case_tech_analysis_calculate()
 
-    case_cigar_butts()
+    # case_cigar_butts()
+
+    for i in range(3,13):
+        print('http://www.yhdm.tv/v/3705-%d.html' % i)
 
     print('I come back again~ ')
