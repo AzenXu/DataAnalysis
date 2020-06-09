@@ -8,7 +8,6 @@ import matplotlib
 
 def data_wash(img):
     # print(img)
-    print(img)
 
     # 0. 三维数组二维化
     # test = [[[0,0,0], [255,255,255], [50,50,50]],
@@ -101,7 +100,7 @@ def data_wash(img):
 
             return fly_points_ver
 
-        print(find_fly_points_ver())
+        # print(find_fly_points_ver())
 
         def remove_fly_points(fly_points) -> np.ndarray:
             for point in fly_points:
@@ -109,10 +108,9 @@ def data_wash(img):
                 no_machine_img[point_y][point_x] = np.nan
             return no_machine_img
 
-        print()
-        print(remove_fly_points(find_fly_points_hor()))
+        # print(remove_fly_points(find_fly_points_hor()))
 
-        no_flying_points = remove_fly_points(find_fly_points_ver())
+        remove_fly_points(find_fly_points_ver())
         no_flying_points = remove_fly_points(find_fly_points_hor())
 
         return no_flying_points
@@ -124,7 +122,7 @@ def data_wash(img):
 def get_point_position(washed_img) -> dict:
     # 1. 判断弯曲方向
     # 拿到max_y - 点的集合maxP & min_y - 点的集合minP
-    print('--- washed_img ---')
+    # print('--- washed_img ---')
     # print(washed_img)
     # 找到试样的所有点坐标
     item_collection_y = np.where(washed_img == 1)[0]
@@ -137,17 +135,17 @@ def get_point_position(washed_img) -> dict:
     y_min_point = {'x': item_collection_x[0], 'y': item_collection_y[0]}
     y_max_point = {'x': item_collection_x[-1], 'y': item_collection_y[-1]}
 
-    print(y_min_point['x'], y_max_point['x'])
+    # print(y_min_point['x'], y_max_point['x'])
 
     # 判断两个点，谁的x值距离图片中心点x最近，选出最近的那个点
     center_x = washed_img.shape[1] * 0.5
-    print(center_x)
+    # print(center_x)
     if abs(y_min_point['x'] - center_x) < abs(y_max_point['x'] - center_x):
         pre_wanted_point = y_min_point
     else:
         pre_wanted_point = y_max_point
 
-    print(pre_wanted_point)
+    # print(pre_wanted_point)
 
     # pre_wanted_point为材料外侧点，需要找到与它x相同的，对应的内侧点
     same_x_position = np.where(item_collection_x == pre_wanted_point['x'])
@@ -157,12 +155,55 @@ def get_point_position(washed_img) -> dict:
     else:
         wanted_y = same_y_value[0]
 
-    print(wanted_y)
+    # print(wanted_y)
 
-    plt.imshow(washed_img)
-    plt.show()
+    # plt.imshow(washed_img)
+    # plt.show()
     return wanted_y
 
 
+def get_position_df(simple_index, pic_index, img_url):
+    wanted_y = get_point_position(data_wash(mpimg.imread(img_url)))
+    pic_index_real = pic_index.strip('_').split('.')[0]
+    return pd.DataFrame({
+        '试样': [int(simple_index)],
+        '图片': [int(pic_index_real)],
+        'y值': [wanted_y]
+    })
+
+
 if __name__ == '__main__':
-    get_point_position(data_wash(mpimg.imread('./ori_imgs/6.jpg')))
+    df = pd.DataFrame(columns=['试样', '图片', 'y值'])
+    import os
+
+    base_dir = '/Users/azen/Documents/data/'
+    simples_dir = os.listdir(base_dir)
+
+    simple_deal_index = 0
+    for simple_dir in simples_dir:
+        simple_dir_abs = base_dir + simple_dir + '/'
+        if os.path.isdir(simple_dir_abs):
+            simple_index = simple_dir
+            # 读试样下的文件
+            simple_pics = os.listdir(simple_dir_abs)
+
+            simple_pic_deal_index = 0
+            for simple_pic_index in simple_pics:
+                if simple_pic_index == '.DS_Store':
+                    continue
+
+                print('正在处理第 %d 个试样，总计 %d 个试样，当前图片 %d，当前试样总计图片 %d'
+                      % (simple_deal_index, len(simples_dir), simple_pic_deal_index, len(simple_pics)))
+
+                simple_pic_url = simple_dir_abs + simple_pic_index
+                print('开始处理：' + simple_pic_url)
+                wanted = get_position_df(simple_index, simple_pic_index, simple_pic_url)
+                print(wanted)
+                df = df.append(wanted, ignore_index=True)
+                simple_pic_deal_index += 1
+
+            simple_deal_index += 1
+            print(df)
+    df = df.sort_values(by=['试样', '图片'], ascending=[True, True]).reset_index()
+    del df['index']
+    df.to_csv('sample_result.csv')
