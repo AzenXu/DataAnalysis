@@ -428,7 +428,7 @@ if __name__ == '__main__':
     # close_price_draw(multi_stock_search())
     # return_ratio_draw(multi_stock_search())
     # return_ratio_hist(multi_stock_search())
-    # qq_plot(get_stocks_close(multi_stock_search()).pct_change())
+    qq_plot(get_stocks_close(multi_stock_search()).pct_change())
     # return_correlated()
 
     #  --- 时间部分 ---
@@ -438,8 +438,5 @@ if __name__ == '__main__':
     # case_tech_analysis_calculate()
 
     # case_cigar_butts()
-
-    for i in range(3,13):
-        print('http://www.yhdm.tv/v/3705-%d.html' % i)
 
     print('I come back again~ ')

@@ -28,9 +28,9 @@ def data_wash(img):
         position_minus = position_real - position_tmp
         position_index = np.where(position_minus == position_minus.max())
         # print(position_index)
-        # 找对应的点坐标 - 左右各留20点冗余
-        right = position_real[position_index[0]][0] - 100
-        left = position_real[position_index[0] - 1][0] + 30
+        # 找对应的点坐标 - 左右各留一些点的冗余
+        right = position_real[position_index[0]][0] - 120
+        left = position_real[position_index[0] - 1][0] + 100
         #
         # print(left, right)
         # 1.2 裁剪img[:, n:m]
@@ -61,7 +61,7 @@ def data_wash(img):
                 y = white_points_y[i]
                 x = white_points_x[i]
 
-                # 左右4个点内，y相同的点的数量
+                # 左右各4个点内，y相同的点的数量
                 count = 0
                 # --- 处理边界值 ---
                 left = -4
@@ -86,16 +86,16 @@ def data_wash(img):
                 x = white_points_x[i]
                 y = white_points_y[i]
 
-                # 上下4个点内，x相同的点的数量
+                # 上下4个点内，x相同的点的数量 - 由于一些异形样，需调整为上下10
                 x_positions = np.where(white_points_x == x)[0]
                 # 用position们去y_list中找y们
                 y_count = 0
                 for j in range(len(x_positions)):
                     x_index = x_positions[j]
                     tmp_y = white_points_y[x_index]
-                    if abs(tmp_y - y) < 4:
+                    if abs(tmp_y - y) < 10:
                         y_count += 1
-                if y_count <= 4:
+                if y_count <= 10:
                     fly_points_ver.append((x, y))
 
             return fly_points_ver
@@ -113,6 +113,8 @@ def data_wash(img):
         remove_fly_points(find_fly_points_ver())
         no_flying_points = remove_fly_points(find_fly_points_hor())
 
+
+
         return no_flying_points
 
     washed_img = remove_flying_content(remove_machine())
@@ -128,8 +130,8 @@ def get_point_position(washed_img) -> dict:
     item_collection_y = np.where(washed_img == 1)[0]
     item_collection_x = np.where(washed_img == 1)[1]
 
-    # print(item_collection_y.tolist())
-    # print(item_collection_x.tolist())
+    print(item_collection_y.tolist())
+    print(item_collection_x.tolist())
 
     # 取y值最大、最小的点坐标对应的x
     y_min_point = {'x': item_collection_x[0], 'y': item_collection_y[0]}
@@ -157,8 +159,8 @@ def get_point_position(washed_img) -> dict:
 
     # print(wanted_y)
 
-    # plt.imshow(washed_img)
-    # plt.show()
+    plt.imshow(washed_img)
+    plt.show()
     return wanted_y
 
 
@@ -172,11 +174,11 @@ def get_position_df(simple_index, pic_index, img_url):
     })
 
 
-if __name__ == '__main__':
+def deployed_logical():
     df = pd.DataFrame(columns=['试样', '图片', 'y值'])
     import os
 
-    base_dir = '/Users/azen/Documents/data/'
+    base_dir = '/Users/azen/Documents/data_adapt/'
     simples_dir = os.listdir(base_dir)
 
     simple_deal_index = 0
@@ -198,12 +200,36 @@ if __name__ == '__main__':
                 simple_pic_url = simple_dir_abs + simple_pic_index
                 print('开始处理：' + simple_pic_url)
                 wanted = get_position_df(simple_index, simple_pic_index, simple_pic_url)
-                print(wanted)
+                # print(wanted)
                 df = df.append(wanted, ignore_index=True)
                 simple_pic_deal_index += 1
 
             simple_deal_index += 1
-            print(df)
+            df.to_csv('sample_result.csv')
     df = df.sort_values(by=['试样', '图片'], ascending=[True, True]).reset_index()
     del df['index']
     df.to_csv('sample_result.csv')
+
+
+def test_logical():
+    wanted = get_position_df(0, '_0', './ori_imgs/41054.jpg')
+    print(wanted)
+
+
+def block_print():
+    import sys
+    import os
+    sys.stdout = open(os.devnull, 'w')
+
+
+def enable_print():
+    import sys
+    sys.stdout = sys.__stdout__
+
+
+if __name__ == '__main__':
+    # block_print()
+    # deployed_logical()
+
+    # enable_print()
+    test_logical()
