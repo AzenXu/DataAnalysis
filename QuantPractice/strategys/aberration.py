@@ -12,18 +12,32 @@ stop_win_n = 3
 stop_lose_static_n = 1
 stop_lose_dynamic_n = 0
 
+stock = define.mengjie
+
 if __name__ == '__main__':
     ts.set_token(os.getenv('TUSHARE_TOKEN'))
     # 拿数据
-    pro = ts.pro_api()
-    df: pd.DataFrame = pro.daily(ts_code=define.xunfei, start_date='201900101', end_date='202006018')
+    # pro = ts.pro_api()
+    # df: pd.DataFrame = ts.pro_bar(ts_code=define.xunfei.code,
+    #                               asset=define.xunfei.asset,
+    #                               start_date='201900101',
+    #                               end_date='20200601',
+    #                               adj='qfq')
+    df: pd.DataFrame = ts.pro_bar(ts_code=stock.code,
+                                  asset=stock.asset,
+                                  start_date='20120101',
+                                  end_date='20130620',
+                                  adj='qfq')                    # 1
     df['trade_date'] = pd.to_datetime(df['trade_date'])
     # df.set_index('trade_date', inplace=True)
     df.sort_values('trade_date', inplace=True)
-    df['ma'] = df.close.rolling(window=observer_length).mean()
+    df.reset_index(inplace=True)
+    del df['index']
+
+    df['ma'] = df.close.rolling(window=observer_length, min_periods=3).mean()
     df['last_ma'] = df.ma.shift()
     df['last_close'] = df.close.shift()
-    df['std'] = df.close.rolling(window=observer_length).std()
+    df['std'] = df.close.rolling(window=observer_length, min_periods=3).std()
     df['std_rolling_max'] = df['std'].rolling(window=observer_length).max()
     df['last_std_rolling_max'] = df['std_rolling_max'].shift()
 
@@ -31,8 +45,10 @@ if __name__ == '__main__':
     df['open_long_price'] = df.last_ma + open_n * df.last_std_rolling_max
     df['stop_win_price'] = df.last_ma + stop_win_n * df.last_std_rolling_max
     df['stop_lose_dynamic'] = df.last_ma - stop_lose_dynamic_n * df.last_std_rolling_max
+
     # 开仓信号：涨超开仓价 & 开仓价 > 动态止损价
-    df['open_signal'] = np.where((df.high > df.open_long_price) & (df.open_long_price > df.stop_lose_dynamic), 1, 0)
+    # df['open_signal'] = np.where((df.high > df.open_long_price) & (df.open_long_price > df.stop_lose_dynamic), 1, 0)
+    df['open_signal'] = np.where((df.high > df.open_long_price), 1, 0)
     df['stop_win_signal'] = np.where(df.high > df.stop_win_price, 1, 0)
 
     df = df.dropna()
@@ -96,8 +112,7 @@ if __name__ == '__main__':
     ax = fig.add_subplot(1, 1, 1)
     ax.plot(df.stock_return)
     ax.plot(df.strategy_return)
-    plt.title('科大讯飞')
-    plt.legend()
+    plt.title(stock.name)
     plt.show()
 
     print('go go go ~')
