@@ -2,8 +2,10 @@
   <dictionary name="azen">
     <words>
       <w>dtype</w>
+      <w>mengjie</w>
       <w>ndarray</w>
       <w>quandl</w>
+      <w>rebalance</w>
       <w>tushare</w>
       <w>xunfei</w>
     </words>
