@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from pandas import Series
-from . import define
+from QuantPractice.strategys import define
 from typing import Dict
 
 

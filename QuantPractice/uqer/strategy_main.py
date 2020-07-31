@@ -1,5 +1,8 @@
 # coding: utf-8
 
+# https://uqer.datayes.com/labs/notebooks/Manager.nb
+# 架构图：https://www.yuque.com/azen/tock/qlf1z7
+
 # ## Base
 
 # In[ ]:

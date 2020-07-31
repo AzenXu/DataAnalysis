@@ -12,6 +12,7 @@ stop_win_n = 3
 stop_lose_static_n = 1
 stop_lose_dynamic_n = 0
 
+# stock = define.xunfei
 stock = define.mengjie
 
 if __name__ == '__main__':

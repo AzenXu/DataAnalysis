@@ -1,3 +1,9 @@
+import tushare as ts
+import os
+import numpy as np
+import pandas as pd
+
+
 class Stock:
     def __init__(self, code, name, asset='E'):
         self.code = code
@@ -5,10 +11,6 @@ class Stock:
         self.name = name
 
     def get_bar(self, start_date: str, end_date: str):
-        import tushare as ts
-        import os
-        import numpy as np
-        import pandas as pd
         ts.set_token(os.getenv('TUSHARE_TOKEN'))
 
         bar: pd.DataFrame = ts.pro_bar(ts_code=self.code, asset=self.asset, adj='qfq', start_date=start_date,
