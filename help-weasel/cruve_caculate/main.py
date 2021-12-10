@@ -1,14 +1,10 @@
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import numpy as np
-# np.set_printoptions(threshold=np.nan)
 import pandas as pd
-import matplotlib
 
 
 def data_wash(img):
-    # print(img)
-
     # 0. 三维数组二维化
     # test = [[[0,0,0], [255,255,255], [50,50,50]],
     #         [[0, 0, 0], [255, 255, 255], [50, 50, 50]],
@@ -27,12 +23,11 @@ def data_wash(img):
         # 取差值最大的下标
         position_minus = position_real - position_tmp
         position_index = np.where(position_minus == position_minus.max())
-        # print(position_index)
+
         # 找对应的点坐标 - 左右各留一些点的冗余
         right = position_real[position_index[0]][0] - 120
         left = position_real[position_index[0] - 1][0] + 100
-        #
-        # print(left, right)
+
         # 1.2 裁剪img[:, n:m]
         needed_img = img_baked[:, left:right]
         return needed_img
@@ -100,20 +95,14 @@ def data_wash(img):
 
             return fly_points_ver
 
-        # print(find_fly_points_ver())
-
         def remove_fly_points(fly_points) -> np.ndarray:
             for point in fly_points:
                 point_x, point_y = point
                 no_machine_img[point_y][point_x] = np.nan
             return no_machine_img
 
-        # print(remove_fly_points(find_fly_points_hor()))
-
         remove_fly_points(find_fly_points_ver())
         no_flying_points = remove_fly_points(find_fly_points_hor())
-
-
 
         return no_flying_points
 
@@ -130,14 +119,12 @@ def get_point_position(washed_img) -> dict:
     item_collection_y = np.where(washed_img == 1)[0]
     item_collection_x = np.where(washed_img == 1)[1]
 
-    print(item_collection_y.tolist())
-    print(item_collection_x.tolist())
+    # print(item_collection_y.tolist())
+    # print(item_collection_x.tolist())
 
     # 取y值最大、最小的点坐标对应的x
     y_min_point = {'x': item_collection_x[0], 'y': item_collection_y[0]}
     y_max_point = {'x': item_collection_x[-1], 'y': item_collection_y[-1]}
-
-    # print(y_min_point['x'], y_max_point['x'])
 
     # 判断两个点，谁的x值距离图片中心点x最近，选出最近的那个点
     center_x = washed_img.shape[1] * 0.5
@@ -147,38 +134,86 @@ def get_point_position(washed_img) -> dict:
     else:
         pre_wanted_point = y_max_point
 
-    # print(pre_wanted_point)
-
     # pre_wanted_point为材料外侧点，需要找到与它x相同的，对应的内侧点
-    same_x_position = np.where(item_collection_x == pre_wanted_point['x'])
-    same_y_value = item_collection_y[same_x_position]
-    if same_y_value[0] == pre_wanted_point['y']:
-        wanted_y = same_y_value[-1]
-    else:
-        wanted_y = same_y_value[0]
+    def get_inner_point():
+        same_x_position = np.where(item_collection_x == pre_wanted_point['x'])
+        same_y_value = item_collection_y[same_x_position]
+        if same_y_value[0] == pre_wanted_point['y']:
+            wanted_y = same_y_value[-1]
+        else:
+            wanted_y = same_y_value[0]
 
-    # print(wanted_y)
+        return wanted_y
 
-    plt.imshow(washed_img)
-    plt.show()
-    return wanted_y
+    # 获取顶部往下25像素的两个点坐标
+    def get_middle_25_points():
+        top_inner_point = {'x': pre_wanted_point['x'], 'y': get_inner_point()}
+        wanted_downer_25_y = top_inner_point['y'] + 25
+        wanted_left_x = 0
+        wanted_right_x = 0
+        # 判断该位置是否存在点
+        wanted_point_indexes = np.where(item_collection_y == wanted_downer_25_y)
+        if len(wanted_point_indexes[0]) >= 3:
+            # 在对应index取x点坐标，找出离顶点x坐标最近的两个
+            start_index = wanted_point_indexes[0][0]
+            end_index = wanted_point_indexes[0][-1]
+            wanted_xs = item_collection_x[start_index:end_index]
+            wanted_xs_test_abs = abs(wanted_xs - pre_wanted_point['x'])
+            wanted_x_index_1 = np.where(wanted_xs_test_abs == wanted_xs_test_abs.min())[0][0]
+            wanted_x_1 = wanted_xs[wanted_x_index_1]
+
+            wanted_x_1_left = wanted_xs[0]
+            if wanted_x_index_1 > 0:
+                wanted_x_1_left = wanted_xs[wanted_x_index_1 - 1]
+
+            wanted_x_1_right = wanted_xs[wanted_x_index_1]
+            if len(wanted_xs) > wanted_x_index_1 + 1:
+                wanted_x_1_right = wanted_xs[wanted_x_index_1 + 1]
+
+            wanted_x_index_2 = wanted_x_index_1 + 1
+            wanted_left_x_index = wanted_x_index_1
+            wanted_right_x_index = wanted_x_index_2
+            # 如果距左侧点更远，则左侧点为需要的第二个点
+            if abs(wanted_x_1 - wanted_x_1_left) > abs(wanted_x_1 - wanted_x_1_right):
+                wanted_x_index_2 = wanted_x_index_1 - 1
+                wanted_left_x_index = wanted_x_index_2
+                wanted_right_x_index = wanted_x_index_1
+
+            wanted_left_x = wanted_xs[wanted_left_x_index]
+            wanted_right_x = wanted_xs[wanted_right_x_index]
+
+        return {'left_x': wanted_left_x, 'right_x': wanted_right_x, 'y': wanted_downer_25_y,
+                'top_x': top_inner_point['x'], 'top_y': top_inner_point['y']}
+
+    # 20201128:逻辑调整为，获取顶部下方25像素的两个点坐标
+    # wanted_y = get_inner_point()
+    wanted_data_dic = get_middle_25_points()
+
+    # plt.imshow(washed_img)
+    # plt.show()
+    return wanted_data_dic
 
 
 def get_position_df(simple_index, pic_index, img_url):
-    wanted_y = get_point_position(data_wash(mpimg.imread(img_url)))
+    wanted_data = get_point_position(data_wash(mpimg.imread(img_url)))
     pic_index_real = pic_index.strip('_').split('.')[0]
     return pd.DataFrame({
-        '试样': [int(simple_index)],
-        '图片': [int(pic_index_real)],
-        'y值': [wanted_y]
+        '试样': [simple_index],
+        '图片': [pic_index_real],
+        'left_x': [wanted_data['left_x']],
+        'right_x': [wanted_data['right_x']],
+        'y': [wanted_data['y']],
+        'top_x': [wanted_data['top_x']],
+        'top_y': [wanted_data['top_y']]
     })
 
 
 def deployed_logical():
-    df = pd.DataFrame(columns=['试样', '图片', 'y值'])
+    df = pd.DataFrame(columns=['试样', '图片'])
     import os
 
-    base_dir = '/Users/azen/Documents/data_adapt/'
+    # base_dir = '/Users/azen/Documents/to_chang/upper/'
+    base_dir = '/Users/azen/Documents/to_chang/v20201129/chang/chang/water/'
     simples_dir = os.listdir(base_dir)
 
     simple_deal_index = 0
@@ -212,7 +247,7 @@ def deployed_logical():
 
 
 def test_logical():
-    wanted = get_position_df(0, '_0', './ori_imgs/41054.jpg')
+    wanted = get_position_df('1-31', '_0', './ori_imgs/_56.jpg')
     print(wanted)
 
 
@@ -229,7 +264,7 @@ def enable_print():
 
 if __name__ == '__main__':
     # block_print()
-    # deployed_logical()
+    deployed_logical()
 
     # enable_print()
-    test_logical()
+    # test_logical()
