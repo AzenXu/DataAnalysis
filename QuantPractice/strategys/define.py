@@ -3,7 +3,6 @@ import os
 import numpy as np
 import pandas as pd
 
-
 class Stock:
     def __init__(self, code, name, asset='E'):
         self.code = code

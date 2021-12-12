@@ -81,7 +81,6 @@ property:
 @ndarray.data - 该缓冲区包含数组的实际元素。通常，我们不需要使用此属性，因为我们将使用索引访问数组中的元素
 '''
 
-
 def numpy_array_init():
     import numpy
     a = numpy.arange(15).reshape(3, 5)
