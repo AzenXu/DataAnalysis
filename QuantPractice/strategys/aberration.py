@@ -6,6 +6,11 @@ import tushare as ts
 import os
 import QuantPractice.strategys.define as define
 
+import matplotlib.pyplot as plt
+
+plt.rcParams['font.sans-serif'] = ['SimHei']  # 正常显示中文
+plt.rcParams['axes.unicode_minus'] = False  # 正常显示负号
+
 observer_length = 10
 open_n = 0.5
 stop_win_n = 3
@@ -19,16 +24,21 @@ if __name__ == '__main__':
     ts.set_token(os.getenv('TUSHARE_TOKEN'))
     # 拿数据
     # pro = ts.pro_api()
+    df: pd.DataFrame = ts.pro_bar(ts_code=define.xunfei.code,
+                                  asset=define.xunfei.asset,
+                                  start_date='20210101',
+                                  end_date='20211201',
+                                  adj='qfq')
     # df: pd.DataFrame = ts.pro_bar(ts_code=define.xunfei.code,
     #                               asset=define.xunfei.asset,
     #                               start_date='201900101',
     #                               end_date='20200601',
     #                               adj='qfq')
-    df: pd.DataFrame = ts.pro_bar(ts_code=stock.code,
-                                  asset=stock.asset,
-                                  start_date='20120101',
-                                  end_date='20130620',
-                                  adj='qfq')                    # 1
+    # df: pd.DataFrame = ts.pro_bar(ts_code=stock.code,
+    #                               asset=stock.asset,
+    #                               start_date='20120101',
+    #                               end_date='20130620',
+    #                               adj='qfq')  # 1
     df['trade_date'] = pd.to_datetime(df['trade_date'])
     # df.set_index('trade_date', inplace=True)
     df.sort_values('trade_date', inplace=True)
