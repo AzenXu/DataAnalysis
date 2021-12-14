@@ -7,20 +7,20 @@ def boom_to_block_info(stock: define.Stock, day_count: int):
     from datetime import timedelta
 
     end_date = datetime.now()
-    start_date = end_date - timedelta(days=100)
+    start_date = end_date - timedelta(days=day_count)
     print(end_date)
     print(start_date)
     start_date_str = start_date.strftime('%Y%m%d')
     end_date_str = end_date.strftime('%Y%m%d')
 
     bars = stock.get_bar(start_date_str, end_date_str)
-    block_bars = bars[bars['pct_chg'] > 5]
+    block_bars = bars[bars['pct_chg'] > 9.9]
 
     return block_bars
 
 
 if __name__ == '__main__':
     # 某支股票近N天涨停数
-    block_info = boom_to_block_info(stock=define.xunfei, day_count=100)
+    block_info = boom_to_block_info(stock=define.zykj, day_count=500)
     print(block_info)
     print('涨停啦~')

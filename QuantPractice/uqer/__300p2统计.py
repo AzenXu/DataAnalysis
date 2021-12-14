@@ -148,66 +148,6 @@ datas
 
 # In[ ]:
 
-DataAPI.MktEqudGet(ticker="301060", tradeDate='20211126', pandas="1")
-
-
-# In[ ]:
-
-# 获取涨停相关数据
-# DataAPI.MktLimitGet('002374',tradeDate='20211201',field=u"secID,upLimitReachedTimes,limitUpPrice",pandas="1")
-DataAPI.MktLimitGet(ticker=u"002374",tradeDate='20211201', pandas="1")
-# DataAPI.MktLimitGet(ticker=u"002374",tradeDate='20211201',exchangeCD=u"",beginDate=u"",endDate=u"",field=u"",pandas="1")
-
-
-# In[ ]:
-
-# 参考了个GitNote里面的写法
-# 不过没权限调用那个接口
-# 我们用别的方法咯，甚至通过GET调用别的接口都行的吧
-
-# 常量准备
-import pandas as pd
-from datetime import datetime as dt
-from pandas import DataFrame, Series
-today = dt.today().strftime('%Y%m%d')   # 获得今天的日期
-
-# DataAPI取所有A股
-stocks = DataAPI.EquGet(equTypeCD='A',listStatusCD='L',field='secID,nonrestfloatA',pandas="1")
-universe = stocks['secID'].tolist()    # 转变为list格式，以便和DataAPI中的格式符合
-
-# 取所有A股的最新行情
-fields = ['shortNM','lastPrice','bidBook','askBook','suspension']
-data = DataFrame()
-for i in range(0,len(universe),300):   # 原则上可以性取完的，但是试验中作者发现会报错，估计是运算量太大，所以这里分批次取，每次300个
-    t = DataAPI.MktTickRTSnapshotGet(securityID=universe[i:min(i+300,len(universe))],field=fields,pandas="1")
-    tmp = DataFrame()
-    tmp['secID'] = t['ticker']+'.'+t['exchangeCD']
-    tmp[['shortNM','lastPrice','bidBook_price1','bidBook_volume1','askBook_volume1','suspension']] =t[['shortNM','lastPrice','bidBook_price1','bidBook_volume1','askBook_volume1','suspension']]
-    data = pd.concat([data,tmp],axis=0)   # 数据拼接
-
-# 去掉当日停牌的股票 
-data['nonrestfloatA'] = stocks['nonrestfloatA']
-data = data[data['suspension']==0]
-
-# 去掉没有涨停板的股票
-data['suspension'][(data['bidBook_volume1']>0).values & (data['askBook_volume1']==0).values] = 1  # 若涨停盘，suspension则赋值1
-data = data[data['suspension']==1]
-data.drop(['suspension','askBook_volume1'],axis=1,inplace=True)
-
-# 计算封停板资金量、流通市值、两者比值
-data['stop_money'] = data['bidBook_price1'].values * data['bidBook_volume1'].values
-data['float_value'] = data['bidBook_price1'].values * data['nonrestfloatA'].values
-data['rate'] = data['stop_money']/data['float_value']*100   #百分之几
-data = data.sort(columns='rate',ascending=False).reset_index()
-data.drop('index',axis=1,inplace=True)
-
-# 重命名
-data.columns = ['代码','简称','最新成交价','买一价','买一量','非受限流通股','封停板资金','流通市值','封停资金流通市值比（百分之几）']
-data.head(30)
-
-
-# In[ ]:
-
 import pandas as pd
 
 start = '20211122'                       # 回测起始时间

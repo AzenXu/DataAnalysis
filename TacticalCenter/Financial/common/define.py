@@ -37,6 +37,7 @@ class Stock:
 
 xunfei = Stock(code='002230.sz', name='科大讯飞')
 mengjie = Stock(code='002397.sz', name='梦洁家纺')  # AQF - Aberration系统用到的DemoStock
+zykj = Stock(code='603533.sh', name='掌阅科技')
 
 hs300 = Stock(code='000300.sh', name='沪深300', asset='I')
 
