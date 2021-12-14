@@ -4,11 +4,14 @@ import execjs
 import requests
 import json
 import pandas as pd
+import os
 
 
 class WenCai:
     def __init__(self):
-        with open('./xuangu.js', 'r') as f:
+        module_path = os.path.dirname(__file__)
+
+        with open(module_path+'/xuangu.js', 'r') as f:
             js_content = f.read()
         self.context = execjs.compile(js_content)
 
@@ -38,4 +41,4 @@ class WenCai:
 
 
 if __name__ == '__main__':
-    print(WenCai().query_with('昨日连板，今日竞价涨幅>8%'))
+    print(WenCai().query_with('20211104连板，非ST，非新股，20211105首次涨停时间'))
