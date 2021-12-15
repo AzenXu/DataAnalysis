@@ -2,6 +2,8 @@ import pandas as pd
 import TacticalCenter.Financial.common.define as define
 import TacticalCenter.Financial.api as api
 import datetime
+import tushare as ts
+import os
 
 
 def demo_func():
@@ -16,6 +18,7 @@ def demo_func():
     bf_yes_day = '20211104'
     yes_day = '20211105'
     today = '20211108'
+    five_day_later = '20211112'
 
     question = '{bf_yes_day}连板，非ST，非新股, ' \
                '{yes_day}首次涨停时间, {yes_day}涨幅，{yes_day}开盘涨幅'.format(bf_yes_day=bf_yes_day, yes_day=yes_day)
@@ -23,7 +26,7 @@ def demo_func():
 
     # step 1: 拿到交易日数据 & 前一日数据
     df = api.WenCai().query_with(question)
-    wanted_df = df[['code',
+    wanted_df = df[['股票代码',
                     '股票简称',
                     '首次涨停时间[%s]' % yes_day,
                     '涨跌幅:前复权[%s]' % yes_day,
@@ -48,14 +51,46 @@ def demo_func():
     print(wanted_df)
 
     # - - datetime处理参考：https://blog.csdn.net/phoenix339/article/details/97620818 - -
-    no_start_from_limited = wanted_df[
-        wanted_df['昨首停'].dt.time > datetime.datetime.strptime('09:30:00', '%H:%M:%S').time()]
-    print(no_start_from_limited.iloc[0])
+    wanted_df['昨竞一'] = wanted_df['昨首停'].dt.time == datetime.datetime.strptime('09:30:00', '%H:%M:%S').time()
 
-    # step 3: 拿到这支票"今天"开盘涨幅、收盘涨幅。
-    # - 如果收盘涨停，则继续取下一日，直到收盘非涨停
-    # - 如果收盘跌停，则继续取下一日，直到收盘非跌停
+    wanted_df['selected'] = False
+    selected_stock = wanted_df[wanted_df.昨竞一 == False].iloc[0]
+    wanted_df.loc[selected_stock.name, 'selected'] = True
 
+    # 转为百分比
+    wanted_df['昨开'] = pd.to_numeric(wanted_df['昨开']) / 100
+    wanted_df['昨开'] = wanted_df['昨开'].apply(lambda x: format(x, '.2%'))
+    wanted_df['昨收'] = pd.to_numeric(wanted_df['昨收']) / 100
+    wanted_df['昨收'] = wanted_df['昨收'].apply(lambda x: format(x, '.2%'))
+    print(wanted_df)
+
+    # step 3: 拿到这些票"今"开涨、收涨，以及此后5日收涨
+    """
+    获取行情数据
+    :param start_date
+    :param end_date
+    :return: https://tushare.pro/document/2?doc_id=27
+    """
+    ts.set_token(os.getenv('TUSHARE_TOKEN'))
+
+    codes = wanted_df.股票代码.tolist()
+    ts_code = ','.join(codes)
+    print(ts_code)
+
+    pro = ts.pro_api()
+    bars: pd.DataFrame = pro.daily(ts_code=ts_code, start_date=today,
+                     end_date=five_day_later)
+    bars.set_index('ts_code', inplace=True)
+
+    # 接下来，需要把值插入到如上表中了
+    # ts_code作为key，然后：
+    # 20211112_pct_chg: -9.8 | 20211111_pct_chg: 16.06 | 20211110_pct_chg: -0.2 | 20211109_pct_chg: 0.2 |
+    # 20211108_pct_chg: x.x | 20211108_o_pct_chg: x.x
+    # 1_o_pct_chg | 1_c_pct_chg | 2_c_pct_chg | 3_c_pct_chg | 4_c_pct_chg | 5_c_pct_chg
+
+    # 做成这样的表格 
+
+    print(bars)
 
 
 if __name__ == '__main__':
