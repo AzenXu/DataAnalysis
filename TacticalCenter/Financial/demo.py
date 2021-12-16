@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import TacticalCenter.Financial.common.define as define
 import TacticalCenter.Financial.api as api
 import datetime
@@ -41,14 +42,25 @@ def pickup_one_day_stocks(bf_trade_day='20211101') -> pd.DataFrame:
 
     # step 1: 拿到交易日数据 & 前一日数据
     df = api.WenCai().query_with(question)
+
+    # bugfix: 20210208 ['分时涨跌幅:前复权[20210209 09:25]'] not in index
+    # question: 20210208连板，非ST，非新股, 20210209首次涨停时间, 20210209涨幅，20210209开盘涨幅
+    # 同花顺里看了下，这个字段确实没返回
+
     wanted_df = df[['股票代码',
                     '股票简称',
                     '首次涨停时间[%s]' % trade_day,
                     '涨跌幅:前复权[%s]' % trade_day,
-                    '分时涨跌幅:前复权[%s 09:25]' % trade_day,
+                    # '分时涨跌幅:前复权[%s 09:25]' % trade_day,
                     '连续涨停天数[%s]' % bf_yes_day,
                     '涨停封单量[%s]' % trade_day
                     ]]
+
+    if '分时涨跌幅:前复权[%s 09:25]' % trade_day in df:
+        wanted_df['分时涨跌幅:前复权[%s 09:25]' % trade_day] = df['分时涨跌幅:前复权[%s 09:25]' % trade_day]
+    else:
+        wanted_df['分时涨跌幅:前复权[%s 09:25]' % trade_day] = np.nan
+
     wanted_df.rename(columns={
         '首次涨停时间[%s]' % trade_day: '昨首停',
         '涨跌幅:前复权[%s]' % trade_day: '昨收',
@@ -69,8 +81,10 @@ def pickup_one_day_stocks(bf_trade_day='20211101') -> pd.DataFrame:
     wanted_df['昨竞一'] = wanted_df['昨首停'].dt.time == datetime.datetime.strptime('09:30:00', '%H:%M:%S').time()
 
     wanted_df['selected'] = False
-    selected_stock = wanted_df[wanted_df.昨竞一 == False].iloc[0]
-    wanted_df.loc[selected_stock.name, 'selected'] = True
+    # bugfix: 20210311: IndexError("single positional indexer is out-of-bounds")
+    if wanted_df[wanted_df.昨竞一 == False].shape[0] > 0: # 有值，再改
+        selected_stock = wanted_df[wanted_df.昨竞一 == False].iloc[0]
+        wanted_df.loc[selected_stock.name, 'selected'] = True
 
     # # 转为百分比
     # wanted_df['昨开'] = pd.to_numeric(wanted_df['昨开']) / 100
@@ -147,7 +161,7 @@ def pickup_stocks(from_day='20211207', to_day='20211208') -> pd.DataFrame:
     for i, trade_day in enumerate(trade_day_list):
         one_day_stocks = pickup_one_day_stocks(trade_day)
         total_stocks = pd.concat([total_stocks, one_day_stocks])
-        time.sleep(2.4)
+        time.sleep(3.5)
 
     return total_stocks
 
@@ -156,6 +170,6 @@ if __name__ == '__main__':
     ts.set_token(os.getenv('TUSHARE_TOKEN'))
 
     # trade_days()
-    result = pickup_stocks(from_day='20210101')
-    result.to_csv('./strong_data.csv')
+    result = pickup_stocks(from_day='20210201', to_day='20210401')
+    result.to_csv('./strong_data_202102-03.csv')
     print(result)
