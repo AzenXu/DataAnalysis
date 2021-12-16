@@ -6,7 +6,24 @@ import tushare as ts
 import os
 
 
-def demo_func():
+def trade_days(start_date='20180101', duration=10) -> list:
+    from datetime import datetime
+    # 构建
+    now = datetime.now().strftime('%Y%m%d')
+    pro = ts.pro_api()
+    df = pro.query('trade_cal', start_date=start_date, end_date=now)
+    wanted_days = df[df.is_open == 1][0:duration].cal_date.to_list()
+    return wanted_days
+
+
+def trade_days_from_to(from_day='20211101', to_day='20211208') -> list:
+    pro = ts.pro_api()
+    df = pro.query('trade_cal', start_date=from_day, end_date=to_day)
+    wanted_days = df[df.is_open == 1].cal_date.to_list()
+    return wanted_days
+
+
+def pickup_one_day_stocks(bf_trade_day='20211101') -> pd.DataFrame:
     # 期望问句：
     # 20211104连板，非ST，非新股, 20211105首次涨停时间, 20211108开盘涨幅, 20211108收盘涨幅
     # 但，如此问，不会返回20211105触板但没涨停票的信息
@@ -15,17 +32,12 @@ def demo_func():
     # 1. 20211104连板，非ST，非新股, 20211105首次涨停时间
     # 2. 1中标的20211108开盘涨幅, 20211108收盘涨幅（调TuShare接口可能比较方便？）
 
-    bf_yes_day = '20211104'
-    trade_day = '20211105'
-    hold_day = '20211108'
-    day_2 = '20211109'
-    day_3 = '20211110'
-    day_4 = '20211111'
-    day_5 = '20211112'
+    bf_yes_day = bf_trade_day
+    bf_yes_day, trade_day, hold_day, day_2, day_3, day_4, day_5 = trade_days(start_date=bf_yes_day,
+                                                                             duration=7)  # unpacking语句
 
     question = '{bf_yes_day}连板，非ST，非新股, ' \
                '{yes_day}首次涨停时间, {yes_day}涨幅，{yes_day}开盘涨幅'.format(bf_yes_day=bf_yes_day, yes_day=trade_day)
-    print(question)
 
     # step 1: 拿到交易日数据 & 前一日数据
     df = api.WenCai().query_with(question)
@@ -44,7 +56,7 @@ def demo_func():
         '连续涨停天数[%s]' % bf_yes_day: '前连板',
         '涨停封单量[%s]' % trade_day: '昨封单'
     }, inplace=True)
-    wanted_df['交易日(昨)'] = trade_day
+    wanted_df['交易日'] = trade_day
     wanted_df['昨首停'] = pd.to_datetime(trade_day + wanted_df['昨首停'], format='%Y%m%d %H:%M:%S')
     print(wanted_df)
 
@@ -125,10 +137,25 @@ def demo_func():
     601218.SH  吉鑫科技 2021-11-05 10:35:50   2.43902439  ...   2.0270  -1.8543   5.1282
     003043.SZ  华亚智能 2021-11-05 13:13:13   2.84194134  ...  10.0064   3.7564   2.5398
     '''
-    print(result_df)
+    return result_df
 
-    #  TODO: 处理交易所时间相关
+
+def pickup_stocks(from_day='20211207', to_day='20211208') -> pd.DataFrame:
+    import time
+    trade_day_list = trade_days_from_to(from_day=from_day, to_day=to_day)
+    total_stocks = pd.DataFrame()
+    for i, trade_day in enumerate(trade_day_list):
+        one_day_stocks = pickup_one_day_stocks(trade_day)
+        total_stocks = pd.concat([total_stocks, one_day_stocks])
+        time.sleep(2.4)
+
+    return total_stocks
 
 
 if __name__ == '__main__':
-    demo_func()
+    ts.set_token(os.getenv('TUSHARE_TOKEN'))
+
+    # trade_days()
+    result = pickup_stocks(from_day='20210101')
+    result.to_csv('./strong_data.csv')
+    print(result)
