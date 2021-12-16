@@ -47,19 +47,32 @@ def pickup_one_day_stocks(bf_trade_day='20211101') -> pd.DataFrame:
     # question: 20210208连板，非ST，非新股, 20210209首次涨停时间, 20210209涨幅，20210209开盘涨幅
     # 同花顺里看了下，这个字段确实没返回
 
+    # bugfix: 20210301 ['首次涨停时间[20210302]', '涨跌幅:前复权[20210302]'] not in index
+    # ['涨停封单量[20210927]'] not in index # 这是全都要来一遍🤣
+
     wanted_df = df[['股票代码',
                     '股票简称',
-                    '首次涨停时间[%s]' % trade_day,
+                    # '首次涨停时间[%s]' % trade_day,
                     '涨跌幅:前复权[%s]' % trade_day,
                     # '分时涨跌幅:前复权[%s 09:25]' % trade_day,
                     '连续涨停天数[%s]' % bf_yes_day,
-                    '涨停封单量[%s]' % trade_day
+                    # '涨停封单量[%s]' % trade_day
                     ]]
 
     if '分时涨跌幅:前复权[%s 09:25]' % trade_day in df:
         wanted_df['分时涨跌幅:前复权[%s 09:25]' % trade_day] = df['分时涨跌幅:前复权[%s 09:25]' % trade_day]
     else:
         wanted_df['分时涨跌幅:前复权[%s 09:25]' % trade_day] = np.nan
+
+    if '首次涨停时间[%s]' % trade_day in df:
+        wanted_df['首次涨停时间[%s]' % trade_day] = df['首次涨停时间[%s]' % trade_day]
+    else:
+        wanted_df['首次涨停时间[%s]' % trade_day] = np.nan
+
+    if '涨停封单量[%s]' % trade_day in df:
+        wanted_df['涨停封单量[%s]' % trade_day] = df['涨停封单量[%s]' % trade_day]
+    else:
+        wanted_df['涨停封单量[%s]' % trade_day] = np.nan
 
     wanted_df.rename(columns={
         '首次涨停时间[%s]' % trade_day: '昨首停',
@@ -70,12 +83,10 @@ def pickup_one_day_stocks(bf_trade_day='20211101') -> pd.DataFrame:
     }, inplace=True)
     wanted_df['交易日'] = trade_day
     wanted_df['昨首停'] = pd.to_datetime(trade_day + wanted_df['昨首停'], format='%Y%m%d %H:%M:%S')
-    print(wanted_df)
 
     # step 2: 找到非竞价一字 & 涨停时间最早的票
     wanted_df = wanted_df.sort_values(by='昨首停').reset_index()
     del wanted_df['index']
-    print(wanted_df)
 
     # - - datetime处理参考：https://blog.csdn.net/phoenix339/article/details/97620818 - -
     wanted_df['昨竞一'] = wanted_df['昨首停'].dt.time == datetime.datetime.strptime('09:30:00', '%H:%M:%S').time()
@@ -104,7 +115,6 @@ def pickup_one_day_stocks(bf_trade_day='20211101') -> pd.DataFrame:
 
     codes = wanted_df.股票代码.tolist()
     ts_code = ','.join(codes)
-    print(ts_code)
 
     pro = ts.pro_api()
     bars: pd.DataFrame = pro.daily(ts_code=ts_code, start_date=hold_day,
@@ -164,7 +174,6 @@ def pickup_one_day_stocks(bf_trade_day='20211101') -> pd.DataFrame:
     result_df['5_c_chg'] = result_df['5_c_chg'].apply(reset_yes_c)
 
     def try_func(stock: pd.Series):
-        print(stock)
         profit = stock['0_c_chg'] + stock['1_c_chg']
         if stock.name.startswith('30'):
             if stock['1_c_chg'] >= 20 or stock['1_c_chg'] <= -20:
@@ -210,6 +219,8 @@ def pickup_stocks(from_day='20211207', to_day='20211208') -> pd.DataFrame:
     for i, trade_day in enumerate(trade_day_list):
         one_day_stocks = pickup_one_day_stocks(trade_day)
         total_stocks = pd.concat([total_stocks, one_day_stocks])
+        print(total_stocks)
+        total_stocks.to_csv('./strong_data_2020/'+trade_day+'.csv')
         time.sleep(3.5)
 
     return total_stocks
@@ -219,6 +230,6 @@ if __name__ == '__main__':
     ts.set_token(os.getenv('TUSHARE_TOKEN'))
 
     # trade_days()
-    result = pickup_stocks(from_day='20210201', to_day='20210401')
-    result.to_csv('./strong_data_202102-03.csv')
+    result = pickup_stocks(from_day='20200101', to_day='20210101')
+    result.to_csv('./strong_data_2020.csv')
     print(result)
