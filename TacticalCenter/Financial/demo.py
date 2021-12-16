@@ -82,7 +82,7 @@ def pickup_one_day_stocks(bf_trade_day='20211101') -> pd.DataFrame:
 
     wanted_df['selected'] = False
     # bugfix: 20210311: IndexError("single positional indexer is out-of-bounds")
-    if wanted_df[wanted_df.昨竞一 == False].shape[0] > 0: # 有值，再改
+    if wanted_df[wanted_df.昨竞一 == False].shape[0] > 0:  # 有值，再改
         selected_stock = wanted_df[wanted_df.昨竞一 == False].iloc[0]
         wanted_df.loc[selected_stock.name, 'selected'] = True
 
@@ -141,16 +141,65 @@ def pickup_one_day_stocks(bf_trade_day='20211101') -> pd.DataFrame:
     wanted_df.set_index('股票代码', inplace=True)
     result_df = pd.concat((wanted_df, wanted_bar), axis=1)
 
+    # 计算当日盈亏 & 数据规整
+    def reset_yes_c(yes_close_str):
+        yes_close = float(yes_close_str)
+        yes_re_close = yes_close
+        if 9.9 < yes_close < 10.1:
+            yes_re_close = 10
+        elif 19.8 < yes_close < 20.2:
+            yes_re_close = 20
+        elif -10.1 < yes_close < -9.9:
+            yes_re_close = -10
+        elif -20.1 < yes_close < -19.9:
+            yes_re_close = -20
+        return yes_re_close
+
+    result_df['昨收'] = result_df['昨收'].apply(reset_yes_c)
+    result_df['0_c_chg'] = result_df['昨收'] - 10
+    result_df['1_c_chg'] = result_df['1_c_chg'].apply(reset_yes_c)
+    result_df['2_c_chg'] = result_df['2_c_chg'].apply(reset_yes_c)
+    result_df['3_c_chg'] = result_df['3_c_chg'].apply(reset_yes_c)
+    result_df['4_c_chg'] = result_df['4_c_chg'].apply(reset_yes_c)
+    result_df['5_c_chg'] = result_df['5_c_chg'].apply(reset_yes_c)
+
+    def try_func(stock: pd.Series):
+        print(stock)
+        profit = stock['0_c_chg'] + stock['1_c_chg']
+        if stock.name.startswith('30'):
+            if stock['1_c_chg'] >= 20 or stock['1_c_chg'] <= -20:
+                profit += stock['2_c_chg']
+                if stock['2_c_chg'] >= 20 or stock['2_c_chg'] <= -20:
+                    profit += stock['3_c_chg']
+                    if stock['3_c_chg'] >= 20 or stock['3_c_chg'] <= -20:
+                        profit += stock['4_c_chg']
+                        if stock['4_c_chg'] >= 20 or stock['4_c_chg'] <= -20:
+                            profit += stock['5_c_chg']
+        else:
+            if stock['1_c_chg'] >= 10 or stock['1_c_chg'] <= -10:
+                profit += stock['2_c_chg']
+                if stock['2_c_chg'] >= 10 or stock['2_c_chg'] <= -10:
+                    profit += stock['3_c_chg']
+                    if stock['3_c_chg'] >= 10 or stock['3_c_chg'] <= -10:
+                        profit += stock['4_c_chg']
+                        if stock['4_c_chg'] >= 10 or stock['4_c_chg'] <= -10:
+                            profit += stock['5_c_chg']
+        stock.profit = profit
+        return stock
+
+    result_df['profit'] = 0
+    result_df = result_df.apply(try_func, axis=1)
+
     '''
-                   股票简称                 昨首停           昨收  ...  3_c_chg  4_c_chg  5_c_chg
-    002096.SZ  南岭民爆 2021-11-05 09:30:00  10.00781861  ...   9.9824   9.9840 -10.0000
-    002751.SZ  易尚展示 2021-11-05 09:30:00  10.01855288  ...  10.0085  -5.0329  -3.8320
-    605555.SH  德昌股份 2021-11-05 09:36:16  10.00767853  ...   1.5603  -5.4935  10.0000
-    002870.SZ  香山股份 2021-11-05 10:13:48  10.00505306  ...   1.5718  -2.9308  10.0000
-    300264.SZ  佳创视讯 2021-11-05 10:21:18  20.05141388  ...  -0.2016  16.0606  -9.8346
-    601218.SH  吉鑫科技 2021-11-05 10:35:50   2.43902439  ...   2.0270  -1.8543   5.1282
-    003043.SZ  华亚智能 2021-11-05 13:13:13   2.84194134  ...  10.0064   3.7564   2.5398
-    '''
+                       股票简称                 昨首停           昨收  ...  3_c_chg  4_c_chg  5_c_chg
+        002096.SZ  南岭民爆 2021-11-05 09:30:00  10.00781861  ...   9.9824   9.9840 -10.0000
+        002751.SZ  易尚展示 2021-11-05 09:30:00  10.01855288  ...  10.0085  -5.0329  -3.8320
+        605555.SH  德昌股份 2021-11-05 09:36:16  10.00767853  ...   1.5603  -5.4935  10.0000
+        002870.SZ  香山股份 2021-11-05 10:13:48  10.00505306  ...   1.5718  -2.9308  10.0000
+        300264.SZ  佳创视讯 2021-11-05 10:21:18  20.05141388  ...  -0.2016  16.0606  -9.8346
+        601218.SH  吉鑫科技 2021-11-05 10:35:50   2.43902439  ...   2.0270  -1.8543   5.1282
+        003043.SZ  华亚智能 2021-11-05 13:13:13   2.84194134  ...  10.0064   3.7564   2.5398
+        '''
     return result_df
 
 
