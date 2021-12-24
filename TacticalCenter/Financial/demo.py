@@ -174,8 +174,9 @@ def pickup_one_day_stocks(bf_trade_day='20211101') -> pd.DataFrame:
     result_df['5_c_chg'] = result_df['5_c_chg'].apply(reset_yes_c)
 
     def try_func(stock: pd.Series):
+        cyb_20_cm: bool = False # 2020年9月开始的20cm好像
         profit = stock['0_c_chg'] + stock['1_c_chg']
-        if stock.name.startswith('30'):
+        if stock.name.startswith('30') and cyb_20_cm:
             if stock['1_c_chg'] >= 20 or stock['1_c_chg'] <= -20:
                 profit += stock['2_c_chg']
                 if stock['2_c_chg'] >= 20 or stock['2_c_chg'] <= -20:
@@ -220,7 +221,7 @@ def pickup_stocks(from_day='20211207', to_day='20211208') -> pd.DataFrame:
         one_day_stocks = pickup_one_day_stocks(trade_day)
         total_stocks = pd.concat([total_stocks, one_day_stocks])
         print(total_stocks)
-        total_stocks.to_csv('./strong_data_2020/'+trade_day+'.csv')
+        total_stocks.to_csv('./strong_data_2018/'+trade_day+'.csv')
         time.sleep(3.5)
 
     return total_stocks
@@ -230,6 +231,6 @@ if __name__ == '__main__':
     ts.set_token(os.getenv('TUSHARE_TOKEN'))
 
     # trade_days()
-    result = pickup_stocks(from_day='20200101', to_day='20210101')
-    result.to_csv('./strong_data_2020.csv')
+    result = pickup_stocks(from_day='20180101', to_day='20190101')
+    result.to_csv('./strong_data_2018.csv')
     print(result)
