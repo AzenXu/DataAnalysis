@@ -227,10 +227,23 @@ def pickup_stocks(from_day='20211207', to_day='20211208') -> pd.DataFrame:
     return total_stocks
 
 
-if __name__ == '__main__':
-    ts.set_token(os.getenv('TUSHARE_TOKEN'))
+def read_json():
+    import json
+    with open('./strong.json') as load_j:
+        strong = json.load(load_j)
+        print(strong)
 
-    # trade_days()
-    result = pickup_stocks(from_day='20180101', to_day='20190101')
-    result.to_csv('./strong_data_2018.csv')
-    print(result)
+    result_ls = strong['info']
+    re_df = pd.DataFrame(result_ls)
+    re_df.to_csv('./KPL_strong_num.csv')
+
+
+if __name__ == '__main__':
+    # ts.set_token(os.getenv('TUSHARE_TOKEN'))
+    #
+    # # trade_days()
+    # result = pickup_stocks(from_day='20180101', to_day='20190101')
+    # result.to_csv('./strong_data_2018.csv')
+    # print(result)
+
+    read_json()

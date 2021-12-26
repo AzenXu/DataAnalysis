@@ -1,0 +1,28 @@
+// https://apphis.longhuvip.com/w1/api/index.php?Day=2021-12-24&PhoneOSNew=2&VerSion=5.2.0.5&a=SharpWithdrawal&apiv=w28&c=HisHomeDingPan
+
+{
+  "info": [
+    [
+      "301186",
+      "C\u8d85\u8fbe",
+      -21.26,
+      -17.7607
+    ],
+    [
+      "000863",
+      "\u4e09\u6e58\u5370\u8c61",
+      -7.22,
+      -15.6057
+    ],
+    [
+      "300248",
+      "\u65b0\u5f00\u666e",
+      -1.75,
+      -15.5129
+    ]
+  ],
+  "num": 15,
+  "date": "2021-12-24",
+  "ttag": 0.0009930000000000216,
+  "errcode": "0"
+}
