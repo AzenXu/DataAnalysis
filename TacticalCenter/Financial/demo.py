@@ -228,6 +228,7 @@ def pickup_stocks(from_day='20211207', to_day='20211208') -> pd.DataFrame:
 
 
 def read_json():
+    # 为了拿市场强度（开盘啦评分），试图提升「强连」策略成功率 & 躲坑
     import json
     with open('./strong.json') as load_j:
         strong = json.load(load_j)
