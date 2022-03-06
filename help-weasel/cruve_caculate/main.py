@@ -1,16 +1,17 @@
-import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import numpy as np
 import pandas as pd
 
 
 def data_wash(img):
-    # 0. 三维数组二维化
-    # test = [[[0,0,0], [255,255,255], [50,50,50]],
-    #         [[0, 0, 0], [255, 255, 255], [50, 50, 50]],
-    #         [[0, 0, 0], [255, 255, 255], [50, 50, 50]]
-    #         ]
+
     def remove_machine():
+        # 0. 三维数组二维化
+        # test = [[[0,0,0], [255,255,255], [50,50,50]],
+        #         [[0, 0, 0], [255, 255, 255], [50, 50, 50]],
+        #         [[0, 0, 0], [255, 255, 255], [50, 50, 50]]
+        #         ]
+
         # 1. 清洗左右两侧夹机
         img_baked = np.where(img > 50, 1, np.nan)
         # 1.1 找到左右裁剪
@@ -263,8 +264,8 @@ def enable_print():
 
 
 if __name__ == '__main__':
+    test_logical()
     # block_print()
-    deployed_logical()
+    # deployed_logical()
 
     # enable_print()
-    # test_logical()

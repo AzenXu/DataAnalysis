@@ -5,13 +5,14 @@ import requests
 import json
 import pandas as pd
 import os
+import tushare as ts
 
 
 class WenCai:
     def __init__(self):
         module_path = os.path.dirname(__file__)
 
-        with open(module_path+'/xuangu.js', 'r') as f:
+        with open(module_path + '/xuangu.js', 'r') as f:
             js_content = f.read()
         self.context = execjs.compile(js_content)
 
@@ -40,5 +41,51 @@ class WenCai:
         return df
 
 
+class TuShare:
+    def __init__(self):
+        ts.set_token(os.getenv('TUSHARE_TOKEN'))
+        self.pro = ts.pro_api()
+
+    def trade_days_from_to(self, from_day='20211101', to_day='20211208') -> list:
+        df = self.pro.query('trade_cal', start_date=from_day, end_date=to_day)
+        wanted_days = df[df.is_open == 1].cal_date.to_list()
+        return wanted_days
+
+    def trade_days(self, start_date='20180101', duration=10) -> list:
+        from datetime import datetime
+        # 构建
+        now = datetime.now().strftime('%Y%m%d')
+        df = self.pro.query('trade_cal', start_date=start_date, end_date=now)
+        wanted_days = df[df.is_open == 1][0:duration].cal_date.to_list()
+        return wanted_days
+
+    def daily(self, ts_code: str, start_date: str, end_date: str):
+        """
+        获取行情数据
+        :param start_date
+        :param end_date
+        :return: https://tushare.pro/document/2?doc_id=27
+        """
+        bars: pd.DataFrame = self.pro.daily(ts_code=ts_code, start_date=start_date,
+                                            end_date=end_date)
+        bars.set_index(['ts_code', 'trade_date'], inplace=True)
+        return bars
+
+
+class AkShare:
+    def __init__(self):
+        self.name = 'akshare'
+
+    def trade_calendar(self):
+        return ak.tool_trade_date_hist_sina()
+
+
+
+
+
 if __name__ == '__main__':
-    print(WenCai().query_with('20211104连板，非ST，非新股，20211105首次涨停时间'))
+    # print(WenCai().query_with('20211104连板，非ST，非新股，20211105首次涨停时间'))
+    # ts = TuShare()
+    # print(ts.trade_days_from_to(from_day='20220112', to_day='20220216'))
+    # print(ts.trade_days())
+    print(AkShare().trade_calendar())

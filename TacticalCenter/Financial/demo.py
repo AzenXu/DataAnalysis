@@ -3,25 +3,30 @@ import numpy as np
 import TacticalCenter.Financial.common.define as define
 import TacticalCenter.Financial.api as api
 import datetime
-import tushare as ts
+# import tushare as ts
 import os
 
-
-def trade_days(start_date='20180101', duration=10) -> list:
-    from datetime import datetime
-    # 构建
-    now = datetime.now().strftime('%Y%m%d')
-    pro = ts.pro_api()
-    df = pro.query('trade_cal', start_date=start_date, end_date=now)
-    wanted_days = df[df.is_open == 1][0:duration].cal_date.to_list()
-    return wanted_days
+tu = api.TuShare()
 
 
-def trade_days_from_to(from_day='20211101', to_day='20211208') -> list:
-    pro = ts.pro_api()
-    df = pro.query('trade_cal', start_date=from_day, end_date=to_day)
-    wanted_days = df[df.is_open == 1].cal_date.to_list()
-    return wanted_days
+def query_for_strong(bf_trade_day='20211101', trade_day='20211102') -> str:
+    # 期望问句：
+    # 20211104连板，非ST，非新股, 20211105首次涨停时间, 20211108开盘涨幅, 20211108收盘涨幅
+    # 但，如此问，不会返回20211105触板但没涨停票的信息
+    #
+    # 故只能分两步查询：
+    # 1. 20211104连板，非ST，非新股, 20211105首次涨停时间
+    # 2. 1中标的20211108开盘涨幅, 20211108收盘涨幅（调TuShare接口可能比较方便？）
+
+    question = '{bf_yes_day}连板，非ST，非新股, ' \
+               '{yes_day}首次涨停时间, {yes_day}涨幅，{yes_day}开盘涨幅'.format(bf_yes_day=bf_trade_day, yes_day=trade_day)
+
+    question_tmp = '{bf_yes_day}日连板，非ST，非新股，' \
+                   '{yes_day}日首次涨停时间，{yes_day}日开盘卖一，' \
+                   '{yes_day}日涨跌幅，{yes_day}日竞价涨跌幅'.format(bf_yes_day=bf_trade_day, yes_day=trade_day)
+
+    return question_tmp
+    # return question
 
 
 def pickup_one_day_stocks(bf_trade_day='20211101') -> pd.DataFrame:
@@ -32,10 +37,9 @@ def pickup_one_day_stocks(bf_trade_day='20211101') -> pd.DataFrame:
     # 故只能分两步查询：
     # 1. 20211104连板，非ST，非新股, 20211105首次涨停时间
     # 2. 1中标的20211108开盘涨幅, 20211108收盘涨幅（调TuShare接口可能比较方便？）
-
     bf_yes_day = bf_trade_day
-    bf_yes_day, trade_day, hold_day, day_2, day_3, day_4, day_5 = trade_days(start_date=bf_yes_day,
-                                                                             duration=7)  # unpacking语句
+    bf_yes_day, trade_day, hold_day, day_2, day_3, day_4, day_5 = tu.trade_days(start_date=bf_yes_day,
+                                                                                duration=7)  # unpacking语句
 
     question = '{bf_yes_day}连板，非ST，非新股, ' \
                '{yes_day}首次涨停时间, {yes_day}涨幅，{yes_day}开盘涨幅'.format(bf_yes_day=bf_yes_day, yes_day=trade_day)
@@ -105,21 +109,10 @@ def pickup_one_day_stocks(bf_trade_day='20211101') -> pd.DataFrame:
     # print(wanted_df)
 
     # step 3: 拿到这些票"今"开涨、收涨，以及此后5日收涨
-    """
-    获取行情数据
-    :param start_date
-    :param end_date
-    :return: https://tushare.pro/document/2?doc_id=27
-    """
-    ts.set_token(os.getenv('TUSHARE_TOKEN'))
-
     codes = wanted_df.股票代码.tolist()
     ts_code = ','.join(codes)
-
-    pro = ts.pro_api()
-    bars: pd.DataFrame = pro.daily(ts_code=ts_code, start_date=hold_day,
-                                   end_date=day_5)
-    bars.set_index(['ts_code', 'trade_date'], inplace=True)
+    bars = tu.daily(ts_code=ts_code, start_date=hold_day,
+                    end_date=day_5)
 
     # 接下来，需要把值插入到如上表中了
     # ts_code作为key，然后：
@@ -174,7 +167,7 @@ def pickup_one_day_stocks(bf_trade_day='20211101') -> pd.DataFrame:
     result_df['5_c_chg'] = result_df['5_c_chg'].apply(reset_yes_c)
 
     def try_func(stock: pd.Series):
-        cyb_20_cm: bool = False # 2020年9月开始的20cm好像
+        cyb_20_cm: bool = False  # 2020年9月开始的20cm好像
         profit = stock['0_c_chg'] + stock['1_c_chg']
         if stock.name.startswith('30') and cyb_20_cm:
             if stock['1_c_chg'] >= 20 or stock['1_c_chg'] <= -20:
@@ -215,16 +208,31 @@ def pickup_one_day_stocks(bf_trade_day='20211101') -> pd.DataFrame:
 
 def pickup_stocks(from_day='20211207', to_day='20211208') -> pd.DataFrame:
     import time
-    trade_day_list = trade_days_from_to(from_day=from_day, to_day=to_day)
+    trade_day_list = api.TuShare().trade_days_from_to(from_day=from_day, to_day=to_day)
     total_stocks = pd.DataFrame()
     for i, trade_day in enumerate(trade_day_list):
         one_day_stocks = pickup_one_day_stocks(trade_day)
         total_stocks = pd.concat([total_stocks, one_day_stocks])
         print(total_stocks)
-        total_stocks.to_csv('./strong_data_2018/'+trade_day+'.csv')
+        total_stocks.to_csv('./strong_data_2018/' + trade_day + '.csv')
         time.sleep(3.5)
 
     return total_stocks
+
+
+def print_strong_questions(from_day='20211207', to_day='20211208'):
+    """
+    打印同花顺连强查询问句（方便手动同花顺查数据的）
+    :param from_day:
+    :param to_day:
+    :return:
+    """
+    trade_day_list = ['20220119', '20220120', '20220121', '20220124', '20220125', '20220126', '20220127', '20220128',
+                      '20220207', '20220208', '20220209', '20220210', '20220211', '20220214', '20220215',
+                      '20220216']  # api.TuShare().trade_days_from_to(from_day=from_day, to_day=to_day)
+    for i, bf_trade_day in enumerate(trade_day_list):
+        if i < len(trade_day_list) - 1:
+            print(query_for_strong(bf_trade_day, trade_day_list[i+1]))
 
 
 def read_json():
@@ -240,11 +248,11 @@ def read_json():
 
 
 if __name__ == '__main__':
-    # ts.set_token(os.getenv('TUSHARE_TOKEN'))
-    #
-    # # trade_days()
-    # result = pickup_stocks(from_day='20180101', to_day='20190101')
-    # result.to_csv('./strong_data_2018.csv')
+    # trade_days()
+    # result = pickup_stocks(from_day='20220207', to_day='20220216')
+    # result.to_csv('./strong_data_202202.csv')
     # print(result)
 
-    read_json()
+    # read_json()
+
+    print_strong_questions(from_day='20220119', to_day='20220216')
